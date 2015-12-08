@@ -1,0 +1,117 @@
+#-*- mode: ruby -*-
+
+gemfile
+
+packaging 'jrubyWar'
+
+resource( :includes => [ 'Gemfile*', 'config.ru', 'app/**' ] )
+
+# embed jetty and make the war executable
+properties 'jruby.war.type' => :jetty
+
+
+# integration tests
+###################
+
+require 'open-uri'
+results = []
+baseurl = 'http://localhost:8989'
+execute 'download', :phase => 'integration-test' do
+  results << open( "#{baseurl}/app" ).string
+  results << open( "#{baseurl}/admin" ).string
+  results << open( "#{baseurl}/admin/ping" ).string
+  results << open( "#{baseurl}/admin/health" ).string
+  results << open( "#{baseurl}/admin/metrics" ).string
+  results << open( "#{baseurl}/admin/threads" ).read
+  results << open( "#{baseurl}/ping" ).string
+  results << open( "#{baseurl}/health" ).string
+  results << open( "#{baseurl}/metrics" ).string
+  results << open( "#{baseurl}/threads" ).read
+  results.each { |r| puts r[0..20] }
+  open( "#{baseurl}/shutdown" ) rescue nil
+end
+
+execute 'start up', :phase => 'pre-integration-test' do |ctx|
+  # just in case - during debugging it can happen
+  open( "#{baseurl}/shutdown" ) rescue nil
+  Thread.new do
+    command = "java -jar pkg/jrubyWarExampleRubyDSL-0.0.0.war"
+    puts "starting #{command}"
+    puts "#{baseurl}/ping"
+    `#{command}`
+  end.run
+  started = false
+  (0..10).each do
+    sleep 1
+    begin
+      started = open( "#{baseurl}/ping" ).string == 'pong'
+      if started
+        break
+      end
+    rescue => e
+      puts e.message
+    end
+  end
+  if started
+    puts "started ..."
+  else
+    # TODO kill server hard
+    raise "timeout starting server"
+  end
+end
+
+execute 'shutdown', :phase => 'post-integration-test' do |ctx|
+  open( "#{baseurl}/shutdown" ) rescue nil
+  puts "stopped"
+end
+
+# verify the downloads
+require 'json'
+execute 'verify downloads', :phase => :verify do
+  sleep 1 #let jetty shut down in peace
+  expected = 'christian'
+  unless results[0].match( /#{expected}/ )
+    raise "missed expected string in download: #{expected}"
+  end
+  expected = 'menu'
+  unless results[1].match( /#{expected}/ )
+    raise "missed expected string in download: #{expected}"
+  end
+  expected = 'pong'
+  unless results[2].match( /#{expected}/ )
+    raise "missed expected string in download: #{expected}"
+  end
+  json = JSON.parse( results[3] )
+  unless json["app.health"]["healthy"]
+    raise "healthy expected"
+  end
+  json = JSON.parse( results[4] )
+  unless json["meters"]["webapp.responseCodes.ok"]["count"] == 1
+    raise "one OK request expected"
+  end
+  unless results[5].length > 10000
+    puts result[5]
+    raise "expected thread dump to be big"
+  end
+  expected = 'pong'
+  unless results[6].match( /#{expected}/ )
+    raise "missed expected string in download: #{expected}"
+  end
+  json = JSON.parse( results[7] )
+  unless json["app.health"]["healthy"]
+    raise "healthy expected"
+  end
+  json = JSON.parse( results[8] )
+  unless json["meters"]["webapp.responseCodes.ok"]["count"] == 1
+    raise "one OK request expected"
+  end
+  unless json["meters"]["collected.responseCodes.2xx"]["count"] == 1
+    raise "one 2xx request expected"
+  end
+  unless results[9].length > 10000
+    puts result[9]
+    raise "expected thread dump to be big"
+  end
+end
+
+
