@@ -8,16 +8,16 @@
   </parent>
   <groupId>org.torquebox.mojo</groupId>
   <artifactId>jruby9</artifactId>
-  <version>0.2.3-SNAPSHOT</version>
+  <version>0.3.0</version>
   <packaging>pom</packaging>
   <name>JRuby9 Next Generation Maven Mojo</name>
   
-  <url>http://github.com/torqubox/jruby9-maven-plugins</url>
+  <url>https://github.com/torquebox/jruby9-maven-plugins</url>
 
   <scm>
     <connection>scm:git:git://github.com/torquebox/jruby9-maven-plugins.git</connection>
     <developerConnection>scm:git:ssh://git@github.com/torquebox/jruby9-maven-plugins.git</developerConnection>
-    <url>http://github.com/torquebox/jruby9-maven-plugins</url>
+    <url>https://github.com/torquebox/jruby9-maven-plugins</url>
   </scm>
 
   <licenses>
