@@ -8,7 +8,7 @@
   </parent>
   <groupId>org.torquebox.mojo</groupId>
   <artifactId>jruby9</artifactId>
-  <version>0.3.0</version>
+  <version>0.3.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>JRuby9 Next Generation Maven Mojo</name>
   
