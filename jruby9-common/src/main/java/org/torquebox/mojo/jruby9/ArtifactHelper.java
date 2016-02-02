@@ -67,12 +67,17 @@ public class ArtifactHelper {
     public void copy(File output, String groupId, String artifactId, String version, String exclusion)
             throws MojoExecutionException {
         output.mkdirs();
+        boolean atLeastOne = false;
         for(Artifact artifact: resolve(groupId, artifactId, version, exclusion)) {
             try {
                 FileUtils.copyFile(artifact.getFile(), new File(output, artifact.getFile().getName()));
+                atLeastOne = true;
             } catch (IOException e) {
                 throw new MojoExecutionException("could not copy: " + artifact, e);
             }
+        }
+        if (!atLeastOne) {
+            throw new MojoExcutionException("could not resolve: " + groupId + ":" + artifactId + ":" + version);
         }
     }
 
