@@ -146,5 +146,38 @@ pom.rb
 	  execute_goal nil, :id => 'default-jar', :phase => :omit
 	end
 	plugin 'org.torquebox.mojo', 'jruby9-war-maven-plugin' do
-	  execute_goals [generate, :process, :war, :type => :jetty
+	  execute_goals [generate, :process, :war], :type => :jetty
 	end
+
+# complete config
+
+two examples with all possible config for the jruby9-jar-maven-plugin,
+either using the plugin configuration itself or via properties
+section. the properties have the advantage that you can overwrite the
+config via the system properties with the commandline:
+
+```
+mvn package -Djruby.version=1.7.24
+```
+
+## using porperties
+
+    properties( 'jruby.jar.type' => :runnable,
+                'jruby.version' => '9.0.5.0',
+                'jruby.mains.version' => '0.5.0',
+                'jruby.rack.version' => '1.1.20',
+                'jetty.version' => '8.1.16.v20140903' )
+    plugin 'org.torquebox.mojo', 'jruby9-war-maven-plugin' do
+      execute_goals [:generate, :process, :war]
+    end
+
+## using the plugin configuration section
+
+    plugin( 'org.torquebox.mojo', 'jruby9-war-maven-plugin',
+            'type' => :jetty,
+	        'jrubyVersion' => '9.1.0.0',
+	        'jrubyMainsVersion' => '0.5.1',
+            'jrubyRackVersion' => '1.1.20',
+            'jettyVersion' => '8.1.16.v20140903' ) do
+      execute_goals [:generate, :process, :war]
+    end

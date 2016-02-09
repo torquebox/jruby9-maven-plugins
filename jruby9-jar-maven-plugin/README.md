@@ -197,26 +197,32 @@ pom.rb
 
 # complete config
 
+two examples with all possible config for the jruby9-jar-maven-plugin,
+either using the plugin configuration itself or via properties
+section. the properties have the advantage that you can overwrite the
+config via the system properties with the commandline:
+
+```
+mvn package -Djruby.version=1.7.24
+```
+
 ## using porperties
 
     properties( 'jruby.jar.type' => :runnable,
                 'jruby.version' => '9.0.5.0',
                 'jruby.mains.version' => '0.5.0' )
-    plugin 'org.torquebox.mojo', 'jruby9-jar-maven-plugin' do
-      execute_goals [:generate, :process], :type => :archive
+    plugin 'org.torquebox.mojo:jruby9-jar-maven-plugin', '0.3.1' do
+      execute_goals [:generate, :process]
     end
 
 ## using the plugin configuration section
 
-    properties( 'jruby.jar.type' => :runnable,
-                'jruby.version' => '9.0.5.0',
-                'jruby.mains.version' => '0.5.0' )
-    plugin( 'org.torquebox.mojo', 'jruby9-jar-maven-plugin',
+    plugin( 'org.torquebox.mojo:jruby9-jar-maven-plugin', '0.3.1'
             'type' => :archive,
 	        'pluginDependenciesOnly' => true,
 	        'jrubyVersion' => '9.1.0.0',
 	        'jrubyMainsVersion' => '0.5.1' ) do
-      execute_goals [:generate, :process, :jar], :type => :archive
+      execute_goals [:generate, :process, :jar]
     end
 
 the ```pluginDependenciesOnly``` has default ```true``` for
