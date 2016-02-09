@@ -6,7 +6,7 @@ even though the plugin depends on the old jruby-maven-plugins it has a different
 
 ## general command line switches
 
-to see the java/jruby command the plugin is executing use (for example with the verify goal)
+to see the java/jruby command the plugin is using (for example with the verify goal)
 
 ```mvn verify -Djruby.verbose```
 
@@ -38,7 +38,7 @@ see more at [jruby9-jar-maven-plugin](jruby9-jar-maven-plugin)
 
 it produces the same jar as with jruby9-jar-plugin but the configuration is more compact using a maven extension.
 
-see more at [jruby9-jar-extension](jruby9-jar-extension)
+see more at [jruby9-extensions](jruby9-extensions)
 
 # meta-fu
 

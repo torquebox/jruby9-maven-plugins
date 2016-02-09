@@ -1,14 +1,15 @@
 # jruby jar maven plugin
 
-it packs a ruby application as runnable jar, i.e. all the ruby code and the gems and jars (which ruby loads via require) are packed inside the jar. the jar will include jruby-complete and jruby-mains to execute the ruby application via, i.e.
+if either packs a ruby gems and ruby code into an archive so this
+archive can be used by jruby when added to the classpath. or it packs a ruby application as runnable jar, i.e. all the ruby code and the gems and jars (which ruby loads via require) are packed inside the jar. the jar will include jruby-complete and jruby-mains to execute the ruby application via, i.e.
 
     java -jar my.jar -S rake
 
-there is more compact configuration using an maven extensions: [../jruby9-jar-extension](jruby9-jar-extension)
+there is a more compact configuration using an maven extension: [jruby9-extensions](../jruby9-extensions)
 
 ## general command line switches
 
-to see the java/jruby command the plugin is executing use (for example with the verify goal)
+to see the java/jruby command the plugin is using (for example with the verify goal)
 
 ```mvn verify -Djruby.verbose```
 
@@ -21,7 +22,7 @@ or to display some help
 ```mvn jruby9-jar:help -Ddetail```
 ```mvn jruby9-jar:help -Ddetail -Dgoal=jar```
 
-## jruby jar
+## jruby runnable jar
 
 it installs all the declared gems and jars from the dependencies section as well the plugin dependencies.
 
@@ -31,17 +32,26 @@ the gem-artifacts are coming from the torquebox rubygems proxy
 
      <repositories>
        <repository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
+         <id>mavengems</id>
+         <url>mavengem:https://rubygems.org</url>
        </repository>
      </repositories>
+
+     <build>
+       <extensions>
+         <extension>
+           <groupId>org.torquebox.mojo</groupId>
+           <artifactId>mavengem-wagon</artifactId>
+           <version>0.2.0</version>
+         </extension>
+       </extensions>
 
 to use these gems within the depenencies of the plugin you need
 
      <pluginRepositories>
        <pluginRepository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
+         <id>mavengems</id>
+         <url>mavengem:https://rubygems.org</url>
        </pluginRepository>
      </pluginRepositories>
 
@@ -96,7 +106,7 @@ the plugin declarations. first we want to omit the regular jar packing
         </executions>
       </plugin>
 
-the tell the jruby-jar mojo to pack the jar
+and tell the jruby-jar mojo to pack the jar
 
       <plugin>
         <groupId>org.torquebox.mojo</groupId>
@@ -116,7 +126,7 @@ the tell the jruby-jar mojo to pack the jar
 	      </execution>
 	    </executions>
 
-now the plugin does also pack those gem declared inside the plugin sections
+now the plugin does also pack the gems/jars declared inside the plugin sections
 
         <dependencies>
           <dependency>
@@ -137,3 +147,78 @@ the main dependencies section does use leafy-rack and for its logging you need a
       </plugin>
     </plugins>
 
+## same config using the ruby DSL
+
+[ruby DSL for maven](https://github.com/takari/polyglot-maven/tree/master/)
+
+pom.rb
+
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+    plugin_repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+    
+    jar 'org.slf4j', 'slf4j-api', '1.7.6'
+    gem 'leafy-rack', '0.4.0'
+    gem 'minitest', '5.7.0'
+
+    resource :includes => ['test.rb', 'spec/**']
+
+    plugin :jar, '2.4' do
+      execute_goal nil, :id => 'default-jar', :phase => :omit
+    end
+    plugin 'org.torquebox.mojo', 'jruby9-jar-maven-plugin' do
+      execute_goals [:generate, :process, :jar], :jrubyVersion => '${j.version}'
+
+      gem 'rspec', '3.3.0'
+      jar 'org.slf4j', 'slf4j-simple', '1.7.6'
+    end
+
+
+# jruby archive
+
+the archive can have regular dependencies as any java jar artifact. to separate the java part from the jruby part, all dependencies for jruby needs to be declared inside the jruby9-jar-plugin section. the big difference is that the regular jar plugin does the packing and the there is no need for the 'jar' goal of the jruby-jar-maven-plugin (but the 'generate' and 'process' goals are needed).
+
+pom.rb
+
+    packaging :jar
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    plugin_repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+
+    resource :includes => ['test.rb', 'spec/**']
+
+    plugin 'org.torquebox.mojo', 'jruby9-jar-maven-plugin' do
+      execute_goals [:generate, :process], :type => :archive
+
+      jar 'org.slf4j', 'slf4j-api', '1.7.6'
+      gem 'leafy-rack', '0.4.0'
+      gem 'minitest', '5.7.0'
+      jar 'org.slf4j', 'slf4j-simple', '1.7.6'
+    end
+
+# complete config
+
+## using porperties
+
+    properties( 'jruby.jar.type' => :runnable,
+                'jruby.version' => '9.0.5.0',
+                'jruby.mains.version' => '0.5.0' )
+    plugin 'org.torquebox.mojo', 'jruby9-jar-maven-plugin' do
+      execute_goals [:generate, :process], :type => :archive
+    end
+
+## using the plugin configuration section
+
+    properties( 'jruby.jar.type' => :runnable,
+                'jruby.version' => '9.0.5.0',
+                'jruby.mains.version' => '0.5.0' )
+    plugin( 'org.torquebox.mojo', 'jruby9-jar-maven-plugin',
+            'type' => :archive,
+	        'pluginDependenciesOnly' => true,
+	        'jrubyVersion' => '9.1.0.0',
+	        'jrubyMainsVersion' => '0.5.1' ) do
+      execute_goals [:generate, :process, :jar], :type => :archive
+    end
+
+the ```pluginDependenciesOnly``` has default ```true``` for
+archive-type ```archive``` and has default ```false``` for
+archive-type ```runnable```. but can be set as needed.

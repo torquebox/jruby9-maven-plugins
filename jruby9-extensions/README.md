@@ -1,14 +1,15 @@
-# jruby jar extension
+# jruby extensions
 
-it packs a ruby application as runnable jar, i.e. all the ruby code and the gems and jars (which ruby loads via require) are packed inside the jar. the jar will include jruby-complete and jruby-mains to execute the ruby application via, i.e.
+it contains two extensions each with its own package type: jrubyJar
+and jrubyWar
 
-    java -jar my.jar -S rake
-
-the extension uses the mojos from [../jruby9-jar-maven-plugin](jruby9-jar-maven-plugin)
+the extension uses the mojos from
+[jruby9-jar-maven-plugin](../jruby9-jar-maven-plugin) and 
+[jruby9-war-maven-plugin](../jruby9-war-maven-plugin)
 
 ## general command line switches
 
-to see the java/jruby command the plugin is executing use (for example with the verify goal)
+to see the java/jruby command the plugin is using (for example with the verify goal)
 
 ```mvn verify -Djruby.verbose```
 
@@ -18,81 +19,47 @@ to quickly pick another jruby version use
 
 or to display some help
 
-```mvn jruby9-jar:help -Ddetail```
-```mvn jruby9-jar:help -Ddetail -Dgoal=jar```
+```mvn jruby9-war:help -Ddetail```
+```mvn jruby9-jar:help -Ddetail -Dgoal=generate```
 
-## jruby jar
+## jruby runnable jar
 
 it installs all the declared gems and jars from the dependencies section as well the plugin dependencies.
 
 the complete pom for the samples below is in [src/it/jrubyJarExample/pom.xml](src/it/jrubyJarExample/pom.xml) and more details on how it can be executed.
 
-the extension is used by declaring the right packaging
+for simplicity the ruby-dsl for maven is used.
 
-    <packaging>jrubyJar</packaging>
+	extension 'org.torquebox.mojo:jruby9-extensions:0.3.0'
+    packaging :jrubyJar
+    
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
 
-the gem-artifacts are coming from the torquebox rubygems proxy
+    properties 'jruby.version' => '1.7.21'
 
-     <repositories>
-       <repository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
-       </repository>
-     </repositories>
+	jar 'org.slf4j', 'slf4j-api', '1.7.6'
+	gem 'leafy-rack', '0.4.0'
+	gem 'minitest', '5.7.0'
+    gem 'rspec', '3.3.0'
+    jar 'org.slf4j', 'slf4j-simple', '1.7.6'
 
-to use these gems within the depenencies of the plugin you need
+	resource :includes => ['test.rb', 'spec/**']
 
-     <pluginRepositories>
-       <pluginRepository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
-       </pluginRepository>
-     </pluginRepositories>
+## jruby war
 
-the jar and gem artifacts for the JRuby application can be declared in the main dependencies section
+some configuration of the jruby9-war plugin is done via the properties.
 
-    <dependencies>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>1.7.6</version>
-      </dependency>
-      <dependency>
-        <groupId>rubygems</groupId>
-        <artifactId>leafy-rack</artifactId>
-        <version>0.4.0</version>
-        <type>gem</type>
-      </dependency>
-      <dependency>
-        <groupId>rubygems</groupId>
-        <artifactId>minitest</artifactId>
-        <version>5.7.0</version>
-        <type>gem</type>
-      </dependency>
-    </dependencies>
+	extension 'org.torquebox.mojo:jruby9-extensions:0.3.0'
+    packaging :jrubyWar
+    
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
 
-these artifacts ALL have the default scope which gets packed into the jar.
+    properties 'jruby.version' => '1.7.21', 'jruby.war.type' => :jetty
 
-adding ruby resources to your jar
+	gem 'leafy-complete', '0.4.0'
+	gem 'sinatra', '1.4.5'
+    jar 'org.slf4j', 'slf4j-simple', '1.7.6'
 
-    <build>
-      <resources>
-        <resource>
-          <directory>${basedir}</directory>
-          <includes>
-            <include>test.rb</include>
-            <include>spec/**</include>
-          </includes>
-        </resource>
-      </resources>
-
-and pick the extension
-
-      <extensions>
-        <extension>
-          <groupId>org.torquebox.mojo</groupId>
-          <artifactId>jruby9-jar-extension</artifactId>
-          <version>@project.version@</version>
-        </extension>
-      </extensions>
-    </build>
+    resource :includes => [ 'Gemfile*', 'config.ru', 'app/**' ]

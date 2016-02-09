@@ -2,11 +2,11 @@
 
 the plugin is modeled after [jruby-gradle](http://jruby-gradle.github.io/) and uses the old jruby maven plugins under the hood but it needs jruby-1.7.19 or newer (including jruby-9.0.0.0 serie).
 
-even if the plugin depends on the old jruby-maven-plugins BUT has a different version.
+even if the plugin depends on the old jruby-maven-plugins it has a different version.
 
 ## general command line switches
 
-to see the java/jruby command the plugin is executing use (for example with the verify goal)
+to see the java/jruby command the plugin is using (for example with the verify goal)
 
 ```mvn verify -Djruby.verbose```
 
@@ -14,13 +14,13 @@ to quickly pick another jruby version use
 
 ```mvn verify -Djruby.version=1.7.20```
 
-or to display some help
+to display some help
 
 ```mvn jruby9:help -Ddetail```
 
 ## jruby exec
 
-it installs all the declared gems from the dependencies section as well the plugin dependencies. all jars are loaded with JRuby via ```require``` which loads them in to the JRubyClassLoader.
+it installs all the declared gems from the dependencies section as well the plugin dependencies. all jars are loaded with JRuby via ```require``` which loads them into the JRubyClassLoader.
 
 the complete pom for the samples below is in [src/it/jrubyExecExample/pom.xml](src/it/jrubyExecExample/pom.xml)
 
@@ -28,17 +28,26 @@ the gem-artifacts are coming from the torquebox rubygems proxy
 
      <repositories>
        <repository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
+         <id>mavengems</id>
+         <url>mavengem:https://rubygems.org</url>
        </repository>
      </repositories>
 
+     <build>
+       <extensions>
+         <extension>
+           <groupId>org.torquebox.mojo</groupId>
+           <artifactId>mavengem-wagon</artifactId>
+           <version>0.2.0</version>
+         </extension>
+       </extensions>
+    
 to use these gems within the depenencies of the plugin you need
 
      <pluginRepositories>
        <pluginRepository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
+         <id>mavengems</id>
+         <url>mavengem:https://rubygems.org</url>
        </pluginRepository>
      </pluginRepositories>
 
@@ -73,7 +82,7 @@ the plugin declaration
       <plugins>
         <plugin>
          <groupId>org.torquebox.mojo</groupId>
-         <artifactId>jruby9-maven-plugin</artifactId>
+         <artifactId>jruby9-exec-maven-plugin</artifactId>
          <executions>
 	       <execution>
              <id>simple</id>
@@ -123,3 +132,28 @@ the main dependencies section does use leafy-rack and to see some of its logging
       </plugin>
     </plugins>
 
+## same config using the ruby DSL
+
+[ruby DSL for maven](https://github.com/takari/polyglot-maven/tree/master/)
+
+pom.rb
+
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+    plugin_repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+    
+	jar 'org.slf4j', 'slf4j-api', '1.7.6'
+	gem 'leafy-rack', '0.4.0'
+	gem 'minitest', '5.7.0', :scope => :test
+
+	plugin 'org.torquebox.mojo', 'jruby9-exec-maven-plugin' do
+	  execute_goal :exec, :id => 'simple', :phase => :validate,
+	    :jrubyVersion => '9.0.3.0', :script => "p 'hello world'"
+      execute_goal :exec, :id => 'rspec', :phase => :test,
+	    :command => :rspec
+      execute_goal :exec, :id => 'test file', :phase => :test,
+	    :file => 'test.rb'
+
+	  gem 'rspec', '3.3.0'
+	  jar 'org.slf4j', 'slf4j-simple', '1.7.6'
+	end

@@ -1,14 +1,23 @@
-# jruby jar maven plugin
+# jruby war maven plugin
 
-it packs a ruby application as runnable jar, i.e. all the ruby code and the gems and jars (which ruby loads via require) are packed inside the jar. the jar will include jruby-complete and jruby-mains to execute the ruby application via, i.e.
+it packs a ruby application as runnable war, i.e. all the ruby code
+and the gems and jars (which ruby loads via require) are packed inside
+the war along with jruby-complete.jar and jruby-rack.jar. it also
+includes a web.xml which configures the rack application to be found
+in WEB-ING/classes. it also can embed jetty with which the application
+can be executed like this
 
-    java -jar my.jar -S rake
+    java -jar my.war
 
-there is more compact configuration using an maven extensions: [../jruby9-jar-extension](jruby9-jar-extension)
+or execute the jruby application by passing on the arguements:
+
+java -jar my.war -S rake
+
+there is also a more compact configuration using an maven extensions: [jruby9-extensions](../jruby9-extensions)
 
 ## general command line switches
 
-to see the java/jruby command the plugin is executing use (for example with the verify goal)
+to see the java/jruby command the plugin is using (for example with the verify goal)
 
 ```mvn verify -Djruby.verbose```
 
@@ -18,10 +27,10 @@ to quickly pick another jruby version use
 
 or to display some help
 
-```mvn jruby9-jar:help -Ddetail```
-```mvn jruby9-jar:help -Ddetail -Dgoal=jar```
+```mvn jruby9-war:help -Ddetail```
+```mvn jruby9-war:help -Ddetail -Dgoal=jar```
 
-## jruby jar
+## jruby war
 
 it installs all the declared gems and jars from the dependencies section as well the plugin dependencies.
 
@@ -31,38 +40,38 @@ the gem-artifacts are coming from the torquebox rubygems proxy
 
      <repositories>
        <repository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
+         <id>mavengems</id>
+         <url>mavengem:https://rubygems.org</url>
        </repository>
      </repositories>
 
-to use these gems within the depenencies of the plugin you need
-
-     <pluginRepositories>
-       <pluginRepository>
-         <id>rubygems-releases</id>
-         <url>http://rubygems-proxy.torquebox.org/releases</url>
-       </pluginRepository>
-     </pluginRepositories>
+     <build>
+       <extensions>
+         <extension>
+           <groupId>org.torquebox.mojo</groupId>
+           <artifactId>mavengem-wagon</artifactId>
+           <version>0.2.0</version>
+         </extension>
+       </extensions>
 
 the jar and gem artifacts for the JRuby application can be declared in the main dependencies section
 
     <dependencies>
       <dependency>
         <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
+        <artifactId>slf4j-simple</artifactId>
         <version>1.7.6</version>
       </dependency>
       <dependency>
         <groupId>rubygems</groupId>
-        <artifactId>leafy-rack</artifactId>
+        <artifactId>leafy-complete</artifactId>
         <version>0.4.0</version>
         <type>gem</type>
       </dependency>
       <dependency>
         <groupId>rubygems</groupId>
-        <artifactId>minitest</artifactId>
-        <version>5.7.0</version>
+        <artifactId>sinatra</artifactId>
+        <version>1.4.5</version>
         <type>gem</type>
       </dependency>
     </dependencies>
@@ -76,8 +85,8 @@ adding ruby resources to your jar
         <resource>
           <directory>${basedir}</directory>
           <includes>
-            <include>test.rb</include>
-            <include>spec/**</include>
+            <include>config.ru</include>
+            <include>app/**</include>
           </includes>
         </resource>
       </resources>
@@ -96,44 +105,46 @@ the plugin declarations. first we want to omit the regular jar packing
         </executions>
       </plugin>
 
-the tell the jruby-jar mojo to pack the jar
+the tell the jruby-war mojo to pack the war and embed jetty
 
       <plugin>
         <groupId>org.torquebox.mojo</groupId>
-        <artifactId>jruby9-jar-maven-plugin</artifactId>
+        <artifactId>jruby9-war-maven-plugin</artifactId>
         <version>@project.version@</version>
         <configuration>
-          <jrubyVersion>${j.version}</jrubyVersion>
+          <type>jetty</type>
         </configuration>
 	    <executions>
 	      <execution>
-            <id>jruby-jar</id>
+            <id>jruby-war</id>
 	        <goals>
               <goal>generate</goal>
               <goal>process</goal>
-              <goal>jar</goal>
+              <goal>war</goal>
             </goals>
 	      </execution>
 	    </executions>
 
-now the plugin does also pack those gem declared inside the plugin sections
+or use type 'archive' for a plain war file without any embedded java.
 
-        <dependencies>
-          <dependency>
-            <groupId>rubygems</groupId>
-            <artifactId>rspec</artifactId>
-            <version>3.3.0</version>
-            <type>gem</type>
-          </dependency>
+## same config using the ruby DSL
 
-the main dependencies section does use leafy-rack and for its logging you need a slf4j logger.
+[ruby DSL for maven](https://github.com/takari/polyglot-maven/tree/master/)
 
-          <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.6</version>
-          </dependency>
-        </dependencies>
-      </plugin>
-    </plugins>
+pom.rb
 
+    extension 'org.torquebox.mojo:mavengem-wagon:0.2.0'
+    repository :id => :mavengems, :url => 'mavengem:https://rubygems.org'
+    
+	jar 'org.slf4j', 'slf4j-simple', '1.7.6'
+	gem 'leafy-complete', '0.4.0'
+	gem 'sinatra', '1.4.5'
+
+	resource :includes => ['config.ru', 'app/**']
+
+	plugin :jar, '2.4' do
+	  execute_goal nil, :id => 'default-jar', :phase => :omit
+	end
+	plugin 'org.torquebox.mojo', 'jruby9-war-maven-plugin' do
+	  execute_goals [generate, :process, :war, :type => :jetty
+	end
