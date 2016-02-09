@@ -77,7 +77,7 @@ public class ArtifactHelper {
             }
         }
         if (!atLeastOne) {
-            throw new MojoExcutionException("could not resolve: " + groupId + ":" + artifactId + ":" + version);
+            throw new MojoExecutionException("could not resolve: " + groupId + ":" + artifactId + ":" + version);
         }
     }
 
