@@ -8,6 +8,8 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.maven.artifact.Artifact;
 import org.codehaus.plexus.util.FileUtils;
@@ -27,6 +29,7 @@ public class JarDependencies {
         
     };
 
+    private final Set<String> coordinates = new TreeSet<>();
     private final List<Artifact> artifacts = new LinkedList<Artifact>();
     private final File jarsLockFile;
     private final File target;
@@ -45,7 +48,10 @@ public class JarDependencies {
     }
 
     public void add(Artifact a) {
-        if (a.getType().equals("jar")) {
+        String coordiante = a.getGroupId() + ":" + a.getArtifactId() + (a.hasClassifier() ? ":" + a.getClassifier() : "");
+        // first comes first and not duplicates
+        if (a.getType().equals("jar") && !coordinates.contains(coordiante)) {
+            coordinates.add(coordiante);
             artifacts.add(a);
         }
     }
