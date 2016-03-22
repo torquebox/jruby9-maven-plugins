@@ -1,8 +1,5 @@
 # partially copied monkey_patch.rb from jruby-mains project
 
-# bundler includes Bundler::SharedHelpers into its runtime
-# adding the included method allows to monkey patch the runtime
-# the moment it is used. i.e. no need to activate the bundler gem
 module Bundler
   module Patch
     def clean_load_path
@@ -14,4 +11,9 @@ module Bundler
       bundler.send :include, Patch
     end
   end
+end
+begin
+  require 'bundler/shared_helpers'
+rescue LoadError
+  # ignore and assume we do not use bundler
 end
